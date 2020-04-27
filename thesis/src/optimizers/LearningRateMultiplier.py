@@ -1,8 +1,8 @@
-from tensorflow.python.keras.optimizers import Optimizer
+from tensorflow.python.keras import optimizers
 from tensorflow.python.keras.utils import get_custom_objects
 
 
-class LearningRateMultiplier(Optimizer):
+class LearningRateMultiplier(optimizers.Optimizer):
     """Optimizer wrapper for per layer learning rate.
     This wrapper is used to add per layer learning rates by
     providing per layer factors which are multiplied with the
@@ -18,9 +18,8 @@ class LearningRateMultiplier(Optimizer):
         **kwargs: The arguments for instantiating the wrapped optimizer
             class.
     """
-    def __init__(self, optimizer, lr_multipliers=None, **kwargs):
-        self._class = optimizer
-        self._optimizer = optimizer(**kwargs)
+    def __init__(self, optimizer, lr_multipliers=None):
+        self._optimizer = optimizer
         self._lr_multipliers = lr_multipliers or {}
 
     def _get_multiplier(self, param):
@@ -45,9 +44,11 @@ class LearningRateMultiplier(Optimizer):
         return updates
 
     def get_config(self):
-        config = {'optimizer': self._class,
-                  'lr_multipliers': self._lr_multipliers}
-        base_config = self._optimizer.get_config()
+        config = {
+            'optimizer': optimizers.serialize(self._optimizer),
+            'lr_multipliers': self._lr_multipliers
+        }
+        base_config = super(LearningRateMultiplier, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
     def __getattr__(self, name):
@@ -59,5 +60,9 @@ class LearningRateMultiplier(Optimizer):
         else:
             self._optimizer.__setattr__(name, value)
 
+    @classmethod
+    def from_config(cls, config):
+        optimizer = optimizers.deserialize(config.pop('optimizer'))
+        return cls(optimizer, **config)
 
 get_custom_objects().update({'LearningRateMultiplier': LearningRateMultiplier})

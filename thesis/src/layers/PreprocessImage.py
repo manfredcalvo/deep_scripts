@@ -1,6 +1,7 @@
 
 from tensorflow.python.keras import layers
 from tensorflow.python.keras.applications.resnet50 import preprocess_input
+from tensorflow.python.keras.utils import get_custom_objects
 
 class PreprocessImage(layers.Layer):
 
@@ -20,3 +21,5 @@ class PreprocessImage(layers.Layer):
 
     def get_config(self):
         return {'model_name': self.model_name}
+
+get_custom_objects().update({'PreprocessImage': PreprocessImage})

@@ -4,6 +4,7 @@ from tensorflow.python.keras import layers
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.initializers import RandomUniform
 from tensorflow.python.keras.constraints import NonNeg
+from tensorflow.python.keras.utils import get_custom_objects
 
 
 class UnsharpMask(layers.Layer):
@@ -66,20 +67,21 @@ class UnsharpMask(layers.Layer):
 
         conv_result = tf.nn.depthwise_conv2d(input_batch, result, (1, 1, 1, 1), padding='SAME')
         D = (input_batch - conv_result)
-        # max_d = K.max(K.abs(D))
-        # max_input  = K.max(input_batch)
         V = input_batch + self.amount[0] * D
-        # V = V * max_d/max_input
+        V = K.clip(V, 0, 255)
         return V
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
     def get_config(self):
-        #config = super(UnsharpMask, self).get_config()
+        # config = super(UnsharpMask, self).get_config()
         config = {'kernel_size': self.kernel_size,
-                       'regularizer_sigma': self.regularizer_sigma,
-                       'regularizer_amount': self.regularizer_amount,
-                       'found_sigma': self.found_sigma,
-                       'sigma': self.sigma}
+                  'regularizer_sigma': self.regularizer_sigma,
+                  'regularizer_amount': self.regularizer_amount,
+                  'found_sigma': self.found_sigma,
+                  'sigma': self.sigma}
         return config
+
+
+get_custom_objects().update({'UnsharpMask': UnsharpMask})

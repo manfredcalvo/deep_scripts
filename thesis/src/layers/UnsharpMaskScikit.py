@@ -5,6 +5,7 @@ from tensorflow.python.keras import layers
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.initializers import RandomUniform, Constant
 from tensorflow.python.keras.constraints import NonNeg
+from tensorflow.python.keras.utils import get_custom_objects
 
 
 class UnsharpMaskScikit(layers.Layer):
@@ -76,7 +77,7 @@ class UnsharpMaskScikit(layers.Layer):
 
         y_distance = K.reshape(x_distance, (1, x_shape[0]))
 
-        result = (K.square(x_distance) + K.square(y_distance)) / (2.0 * K.square(self.sigma))
+        result = (K.square(x_distance) + K.square(y_distance)) / (2.0 * K.square(self.sigma[0]))
         result = K.exp(-1 * result)
         result = result / K.sum(result)
 
@@ -90,3 +91,14 @@ class UnsharpMaskScikit(layers.Layer):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def get_config(self):
+        #config = super(UnsharpMask, self).get_config()
+        config = {'kernel_size': self.kernel_size,
+                       'regularizer_sigma': self.regularizer_sigma,
+                       'regularizer_amount': self.regularizer_amount,
+                       'found_sigma': self.found_sigma,
+                       'sigma': self.sigma}
+        return config
+
+get_custom_objects().update({'UnsharpMaskScikit': UnsharpMaskScikit})

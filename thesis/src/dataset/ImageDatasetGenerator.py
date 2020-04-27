@@ -5,9 +5,8 @@ from random import choice
 import numpy as np
 
 
-
 class ImageDatasetGenerator(keras.utils.Sequence):
-    def __init__(self, files, labels, batch_size, output_dim, metadata, train_mode=True):
+    def __init__(self, files, labels, batch_size, output_dim, metadata, random_crop=False, train_mode=True, **kwargs):
         self.dataset = files
         self.labels = labels
         self.batch_size = batch_size
@@ -17,8 +16,18 @@ class ImageDatasetGenerator(keras.utils.Sequence):
         self.train_mode = train_mode
         self.random_flip_prob = 0.5
         self.load_specimens(files)
-        self.image_generator = ImageDataGenerator(horizontal_flip=True, vertical_flip=True)
+        self.image_generator = ImageDataGenerator(**kwargs)
+        self.random_crop = random_crop
+        self.transformations = None
+        self.create_transformations()
 
+    def create_transformations(self):
+        dim_image = (self.output_dim[0], self.output_dim[1])
+        if self.random_crop:
+            first_transformation = lambda x: self.rand_crop(x, dim_image)
+        else:
+            first_transformation = lambda x: cv2.resize(x, dim_image)
+        self.transformations = [first_transformation, self.image_generator.random_transform]
 
     def load_specimens(self, files):
 
@@ -33,7 +42,7 @@ class ImageDatasetGenerator(keras.utils.Sequence):
             else:
                 self.classes[class_name][specimen_number] = [i]
 
-    def random_crop(self, img, random_crop_size):
+    def rand_crop(self, img, random_crop_size):
         # Note: image_data_format is 'channel_last'
         assert img.shape[2] == 3
         height, width = img.shape[0], img.shape[1]
@@ -41,6 +50,11 @@ class ImageDatasetGenerator(keras.utils.Sequence):
         x = np.random.randint(0, width - dx + 1)
         y = np.random.randint(0, height - dy + 1)
         return img[y:(y + dy), x:(x + dx), :]
+
+    def transform_image(self, img):
+        for transformation in self.transformations:
+            img = transformation(img)
+        return img
 
     def __len__(self):
         return len(self.dataset)
@@ -65,11 +79,7 @@ class ImageDatasetGenerator(keras.utils.Sequence):
 
                 img = cv2.imread(path)
 
-                img = cv2.resize(img, (width, height))
-
-                #img = self.random_crop(img, (width, height))
-
-                img = self.image_generator.random_transform(img)
+                img = self.transform_image(img)
 
                 X[i] = img
                 y[i] = self.labels[index]
@@ -78,23 +88,20 @@ class ImageDatasetGenerator(keras.utils.Sequence):
         else:
             (width, height, depth) = self.output_dim[0], self.output_dim[1], 3
 
-            X = np.empty((self.batch_size, width, height, depth), dtype=int)
-            y = np.empty((self.batch_size), dtype=int)
+            batch_data = self.dataset[index * self.batch_size: (index + 1) * self.batch_size]
+            labels_data = self.labels[index * self.batch_size: (index + 1) * self.batch_size]
 
-            j = 0
+            len_batch = len(batch_data)
+            X = np.empty((len_batch, width, height, depth), dtype=int)
+            y = np.empty((len_batch), dtype=int)
 
-            for i in range(index * self.batch_size, (index + 1) * self.batch_size):
-                path = self.dataset[i]
-
+            for j, (path, label) in enumerate(zip(batch_data, labels_data)):
                 img = cv2.imread(path)
 
-                img = cv2.resize(img, (width, height))
-
-                #img = self.random_crop(img, (width, height))
+                ##Just executing first transformation.
+                img = self.transformations[0](img)
 
                 X[j] = img
-                y[j] = self.labels[i]
-
-                j += 1
+                y[j] = label
 
             return X, keras.utils.to_categorical(y, num_classes=len(self.classes.keys()))

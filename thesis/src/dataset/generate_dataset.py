@@ -1,8 +1,9 @@
 import json
 import os
-import math
 from PIL import Image
 import random
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 
 class GenerateDataset:
@@ -15,9 +16,10 @@ class GenerateDataset:
         self.classes = []
         self.train = {}
         self.test = {}
+        self.val = {}
         self.metadata = metadata
 
-    def load_dataset(self, existing_dataset, split=0.5):
+    def load_dataset(self, existing_dataset, val_split=0.2, test_split=0.2):
         for class_name in os.listdir(self.path):
             if class_name in self.IGNORED:
                 continue
@@ -30,11 +32,15 @@ class GenerateDataset:
             dataset_file.close()
             self.train = loaded_dataset['train']
             self.test = loaded_dataset['test']
+            self.val = loaded_dataset['val']
         else:
-            self.load_new_dataset(split)
+            self.load_new_dataset(val_split, test_split)
 
     def num_classes(self):
         return len(self.classes)
+
+    def get_classes(self):
+        return self.classes
 
     def add_ignore(self):
         files = []
@@ -58,7 +64,7 @@ class GenerateDataset:
             self.train['files'].append(file)
             self.train['labels'].append(self.classes.index(labels[i]))
 
-    def load_new_dataset(self, split):
+    def load_new_dataset(self, val_split=0.2, test_split=0.2):
         for class_name in os.listdir(self.path):
             if class_name in self.IGNORED:
                 continue
@@ -67,6 +73,7 @@ class GenerateDataset:
                 file_path = os.path.join(self.path, class_name, file)
                 # Metadata is a dict with the metadata of each file.
                 specimen_number = self.metadata[file.split('/')[-1]]['specimen_number']
+
                 if specimen_number not in self.specimens.keys():
                     self.specimens[specimen_number] = []
 
@@ -80,9 +87,10 @@ class GenerateDataset:
                         self.specimens[specimen_number].append(file_path)
 
         self.classes.sort()
-        dataset = self.get_dataset(split)
+        dataset = self.get_dataset(val_split, test_split)
         self.train = dataset['train']
         self.test = dataset['test']
+        self.val = dataset['val']
 
     def get_train(self):
         return self.train
@@ -142,6 +150,7 @@ class GenerateDataset:
 
         return {
             'train': train_data,
+            'val': self.val,
             'test': self.test
         }
 
@@ -175,11 +184,34 @@ class GenerateDataset:
 
         return specimens_by_class
 
-    def get_dataset(self, split):
-        train, test = self.get_dataset_specimens(split)
+    def get_dataset_specimens(self, val_split=0.2, test_split=0.2):
+        train = []
+        val = []
+        test = []
+
+        for class_name in self.classes:
+            specimens = self.dataset[class_name]
+            training_indexes, test_indexes, _, _ = train_test_split(np.arange(len(specimens)),
+                                                                    np.arange(len(specimens)),
+                                                                    test_size=test_split)
+            val_p = (val_split / (1 - test_split))
+
+            train_indexes, val_indexes, _, _ = train_test_split(training_indexes, np.arange(len(training_indexes)),
+                                                                test_size=val_p)
+
+            train.extend(specimens[specimen] for specimen in train_indexes)
+            test.extend(specimens[specimen] for specimen in test_indexes)
+            val.extend(specimens[specimen] for specimen in val_indexes)
+
+        return train, val, test
+
+    def get_dataset(self, val_split, test_split):
+        train, val, test = self.get_dataset_specimens(val_split, test_split)
 
         train_files = self.get_files(train)
         train_labels = self.get_labels(train_files)
+        val_files = self.get_files(val)
+        val_labels = self.get_labels(val_files)
         test_files = self.get_files(test)
         test_labels = self.get_labels(test_files)
 
@@ -188,23 +220,14 @@ class GenerateDataset:
                 'files': train_files,
                 'labels': train_labels,
             },
+            'val': {
+                'files': val_files,
+                'labels': val_labels,
+            },
             'test': {
                 'files': test_files,
                 'labels': test_labels
             }}
-
-    def get_dataset_specimens(self, split=1.):
-        train = []
-        test = []
-
-        for class_name in self.classes:
-            specimens = self.dataset[class_name]
-            random.shuffle(specimens)
-            split_point = int(split * len(specimens))
-            train.extend(specimens[:split_point])
-            test.extend(specimens[split_point:])
-
-        return train, test
 
     def get_files(self, specimen_list):
         files = []

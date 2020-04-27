@@ -1,20 +1,19 @@
-
 import tensorflow as tf
 import numpy as np
 from tensorflow.python.keras import layers
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.initializers import RandomUniform, Constant
 from tensorflow.python.keras.constraints import NonNeg
+from tensorflow.python.keras.utils import get_custom_objects
+
 
 class UnsharpMaskLoG(layers.Layer):
-
     def __init__(self,
                  kernel_size,
                  regularizer_sigma,
                  regularizer_amount,
                  found_sigma=False,
                  sigma=None, **kwargs):
-
         self.kernel_size = kernel_size
         self.regularizer_sigma = regularizer_sigma
         self.regularizer_amount = regularizer_amount
@@ -24,7 +23,6 @@ class UnsharpMaskLoG(layers.Layer):
         super(UnsharpMaskLoG, self).__init__(**kwargs)
 
     def build(self, input_shape):
-
         if self.found_sigma:
             initializer_sigma = RandomUniform(minval=0.0001, maxval=1, seed=None)
             self.sigma = self.add_weight(name='sigma',
@@ -57,8 +55,7 @@ class UnsharpMaskLoG(layers.Layer):
         kernel = kernel_t - np.sum(kernel_t) / np.power(k, 2)
         return kernel
 
-    def call(self, input):
-
+    def call(self, input_batch):
         kernel = self.LoG_np(self.kernel_size[0], self.sigma)
 
         kernel = K.constant(kernel)
@@ -67,17 +64,24 @@ class UnsharpMaskLoG(layers.Layer):
         kernel = K.repeat_elements(kernel, 3, axis=-1)
         kernel = K.expand_dims(kernel)
 
-        B = tf.nn.depthwise_conv2d(input, kernel, (1, 1, 1, 1), padding='SAME')
+        B = tf.nn.depthwise_conv2d(input_batch, kernel, (1, 1, 1, 1), padding='SAME')
 
-        U = input + self.amount * B
+        U = input_batch + self.amount[0] * B
 
-        maxB = K.max(K.abs(B))
-
-        maxInput = K.max(input)
-
-        U = U * maxInput/maxB
+        U = K.clip(U, 0, 255)
 
         return U
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def get_config(self):
+        config = {'kernel_size': self.kernel_size,
+                  'regularizer_sigma': self.regularizer_sigma,
+                  'regularizer_amount': self.regularizer_amount,
+                  'found_sigma': self.found_sigma,
+                  'sigma': self.sigma}
+        return config
+
+
+get_custom_objects().update({'UnsharpMaskLoG': UnsharpMaskLoG})
