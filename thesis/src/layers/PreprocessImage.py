@@ -1,7 +1,7 @@
 
-from tensorflow.python.keras import layers
-from tensorflow.python.keras.applications.resnet50 import preprocess_input
-from tensorflow.python.keras.utils import get_custom_objects
+from tensorflow.keras import layers
+from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.utils import get_custom_objects
 
 class PreprocessImage(layers.Layer):
 

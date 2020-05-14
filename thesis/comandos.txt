@@ -1,0 +1,136 @@
+
+
+nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> trainModelBarkNetGrid2.txt &
+
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid9.txt &
+
+
+
+grid_11-05-2020_05:25:07
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid10.txt &
+
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid11.txt &
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid12.txt &
+
+  grid_no_filter = {
+        "batch_size": [64],
+        "width": [224],
+        "height": [224],
+        "initial_lr": [1e-5],
+        "model_name": ["resnet_50"],
+        "min_lr": [1e-12],
+        "epochs": [100],
+        "unsharp_mask_filter": ["noFilter"],
+        "fixed_sigma": [1.667],
+        "reduce_lr_factor": [0.1],
+        "reduce_lr_patience": [3],
+        "early_stop_patience": [5],
+        "kernel_size": [5],
+        "val_split": [0.2],
+        "test_split": [0.2],
+        "trainable_layers_amount": [0, 10, 20],
+        "unsharp_mask_multiplier": [1],
+        "augmentation_params": [{
+            "random_crop": False,
+            "horizontal_flip": True,
+            "vertical_flip": True
+        }],
+        "architecture": [2],
+        "dropout": [0.6]
+    }
+
+    grid_filter = {
+        "batch_size": [64],
+        "width": [224],
+        "height": [224],
+        "initial_lr": [1e-5],
+        "model_name": ["resnet_50"],
+        "min_lr": [1e-12],
+        "epochs": [100],
+        "unsharp_mask_filter": ["adaptive", "adaptiveLog"],
+        "fixed_sigma": [1.667],
+        "trainable_layers_amount": [0, 10, 20],
+        "reduce_lr_factor": [0.1],
+        "reduce_lr_patience": [3],
+        "early_stop_patience": [5],
+        "kernel_size": [10, 5, 3],
+        "val_split": [0.2],
+        "test_split": [0.2],
+        "unsharp_mask_multiplier": [1e4],
+        "augmentation_params": [{
+            "random_crop": False,
+            "horizontal_flip": True,
+            "vertical_flip": True
+        }],
+        "architecture": [2],
+        "dropout": [0.6]
+    }
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid13.txt &
+
+
+    grid_no_filter = {
+        "batch_size": [64],
+        "width": [224],
+        "height": [224],
+        "initial_lr": [1e-4],
+        "model_name": ["resnet_50"],
+        "min_lr": [1e-12],
+        "epochs": [200],
+        "unsharp_mask_filter": ["noFilter"],
+        "fixed_sigma": [1.667],
+        "reduce_lr_factor": [0.1],
+        "reduce_lr_patience": [3],
+        "early_stop_patience": [5],
+        "kernel_size": [5],
+        "val_split": [0.2],
+        "test_split": [0.2],
+        "trainable_layers_amount": [0, 10, 20],
+        "unsharp_mask_multiplier": [1],
+        "augmentation_params": [{
+            "random_crop": False,
+            "horizontal_flip": True,
+            "vertical_flip": True
+        }],
+        "architecture": [2],
+        "dropout": [0.5]
+    }
+
+    grid_filter = {
+        "batch_size": [64],
+        "width": [224],
+        "height": [224],
+        "initial_lr": [1e-4],
+        "model_name": ["resnet_50"],
+        "min_lr": [1e-12],
+        "epochs": [200],
+        "unsharp_mask_filter": ["adaptive", "adaptiveLog"],
+        "fixed_sigma": [1.667],
+        "trainable_layers_amount": [0, 10, 20],
+        "reduce_lr_factor": [0.1],
+        "reduce_lr_patience": [3],
+        "early_stop_patience": [5],
+        "kernel_size": [10, 5, 3],
+        "val_split": [0.2],
+        "test_split": [0.2],
+        "unsharp_mask_multiplier": [1e4],
+        "augmentation_params": [{
+            "random_crop": False,
+            "horizontal_flip": True,
+            "vertical_flip": True
+        }],
+        "architecture": [2],
+        "dropout": [0.5]
+    }
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid14.txt &
+
+
+nohup python3 -u trainModel.py -d /notebooks/downloaded_data/full_data_top_23 -m /notebooks/bdfr.metadata -o /notebooks/experiments_bdfr -s settings_bdfr.json > trainModelBDFRGrid1.txt &
+
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid18.txt &

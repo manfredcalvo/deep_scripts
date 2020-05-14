@@ -1,12 +1,12 @@
-from tensorflow.python import keras
-from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
+from tensorflow import keras
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import cv2
 from random import choice
 import numpy as np
 
 
 class ImageDatasetGenerator(keras.utils.Sequence):
-    def __init__(self, files, labels, batch_size, output_dim, metadata, random_crop=False, train_mode=True, **kwargs):
+    def __init__(self, files, labels, batch_size, output_dim, metadata, random_crop=False, rotation = False, train_mode=True, **kwargs):
         self.dataset = files
         self.labels = labels
         self.batch_size = batch_size
@@ -14,20 +14,34 @@ class ImageDatasetGenerator(keras.utils.Sequence):
         self.classes = {}
         self.metadata = metadata
         self.train_mode = train_mode
-        self.random_flip_prob = 0.5
         self.load_specimens(files)
         self.image_generator = ImageDataGenerator(**kwargs)
+        self.possible_rotations = {1: cv2.ROTATE_90_CLOCKWISE, 2: cv2.ROTATE_90_COUNTERCLOCKWISE, 3: cv2.ROTATE_180}
         self.random_crop = random_crop
+        self.rotation = rotation
         self.transformations = None
         self.create_transformations()
 
+    def rotate_image(self, img):
+        rand_int = np.random.randint(4)
+        if rand_int != 0:
+            img = cv2.rotate(img, self.possible_rotations[rand_int])
+        return img
+
     def create_transformations(self):
         dim_image = (self.output_dim[0], self.output_dim[1])
+        self.transformations = []
         if self.random_crop:
             first_transformation = lambda x: self.rand_crop(x, dim_image)
         else:
             first_transformation = lambda x: cv2.resize(x, dim_image)
-        self.transformations = [first_transformation, self.image_generator.random_transform]
+        self.transformations.append(first_transformation)
+
+        if self.rotation:
+            self.transformations.append(self.rotate_image)
+
+        self.transformations.append(self.image_generator.random_transform)
+
 
     def load_specimens(self, files):
 

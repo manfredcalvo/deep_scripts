@@ -193,11 +193,11 @@ class GenerateDataset:
             specimens = self.dataset[class_name]
             training_indexes, test_indexes, _, _ = train_test_split(np.arange(len(specimens)),
                                                                     np.arange(len(specimens)),
-                                                                    test_size=test_split)
+                                                                    test_size=test_split, random_state=1222)
             val_p = (val_split / (1 - test_split))
 
             train_indexes, val_indexes, _, _ = train_test_split(training_indexes, np.arange(len(training_indexes)),
-                                                                test_size=val_p)
+                                                                test_size=val_p, random_state=213412)
 
             train.extend(specimens[specimen] for specimen in train_indexes)
             test.extend(specimens[specimen] for specimen in test_indexes)

@@ -1,10 +1,10 @@
 import tensorflow as tf
 import numpy as np
-from tensorflow.python.keras import layers
-from tensorflow.python.keras import backend as K
-from tensorflow.python.keras.initializers import RandomUniform, Constant
-from tensorflow.python.keras.constraints import NonNeg
-from tensorflow.python.keras.utils import get_custom_objects
+from tensorflow.keras import layers
+from tensorflow.keras import backend as K
+from tensorflow.keras.initializers import RandomUniform, Constant
+from tensorflow.keras.constraints import NonNeg
+from tensorflow.keras.utils import get_custom_objects
 
 
 class UnsharpMaskLoG(layers.Layer):
@@ -32,7 +32,7 @@ class UnsharpMaskLoG(layers.Layer):
                                          constraint=NonNeg(),
                                          trainable=self.found_sigma)
 
-        initializer_amount = RandomUniform(minval=0, maxval=1, seed=None)
+        initializer_amount = Constant(0)
 
         self.amount = self.add_weight(name='amount',
                                       shape=(1, 1),
