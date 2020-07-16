@@ -8,7 +8,7 @@ from tensorflow.keras.utils import get_custom_objects
 import cv2
 
 
-class UnsharpMask(layers.Layer):
+class UnsharpMaskFixedLambda(layers.Layer):
     def __init__(self,
                  kernel_size,
                  found_sigma=True,
@@ -19,7 +19,7 @@ class UnsharpMask(layers.Layer):
         self.found_sigma = found_sigma
         self.sigma = sigma
         self.amount = amount
-        super(UnsharpMask, self).__init__(**kwargs)
+        super(UnsharpMaskFixedLambda, self).__init__(**kwargs)
 
     def build(self, input_shape):
         # Defining parameters to optimize.
@@ -33,17 +33,7 @@ class UnsharpMask(layers.Layer):
                                          constraint=NonNeg(),
                                          trainable=True)
 
-        if self.amount:
-            print("Initializing amount as a constant value: %s" % self.amount)
-            initializer_amount = Constant(self.amount)
-        else:
-            initializer_amount = RandomUniform(minval=0, maxval=1, seed=None)
-
-        self.amount = self.add_weight(name='amount',
-                                      shape=(1, 1),
-                                      initializer=initializer_amount,
-                                      trainable=True)
-        super(UnsharpMask, self).build(input_shape)  # Be sure to call this at the end
+        super(UnsharpMaskFixedLambda, self).build(input_shape)  # Be sure to call this at the end
 
     def gaussian_kernel_cv2(self, kernel_size, sigma):
         kernel = cv2.getGaussianKernel(kernel_size, sigma)
@@ -58,7 +48,17 @@ class UnsharpMask(layers.Layer):
         result = result / result.sum()
         return result
 
-    def call(self, input_batch):
+    def reshape_function(self, lambdas):
+        (width, height, channels) = 224, 224, 3
+        c = K.repeat_elements(lambdas, width, axis=1)
+        d = K.expand_dims(c)
+        e = K.repeat_elements(d, height, axis=2)
+        f = K.expand_dims(e)
+        g = K.repeat_elements(f, channels, axis=3)
+        return g
+
+    def call(self, inputs):
+        lambdas_batch, input_batch = inputs
 
         kernel = self.gaussian_kernel_cv2(self.kernel_size[0], self.sigma)
         kernel = K.constant(kernel)
@@ -69,7 +69,9 @@ class UnsharpMask(layers.Layer):
         blurred = tf.nn.depthwise_conv2d(input_batch, kernel, (1, 1, 1, 1), padding='SAME')
 
         D = (input_batch - blurred)
-        V = (input_batch + (self.amount[0] * D))
+        lambdas_batch = self.reshape_function(lambdas_batch)
+        Z = lambdas_batch * D
+        V = (input_batch + Z)
         V = K.clip(V, 0, 255)
         return V
 
@@ -84,4 +86,4 @@ class UnsharpMask(layers.Layer):
         return config
 
 
-get_custom_objects().update({'UnsharpMask': UnsharpMask})
+get_custom_objects().update({'UnsharpMaskFixedLambda': UnsharpMaskFixedLambda})

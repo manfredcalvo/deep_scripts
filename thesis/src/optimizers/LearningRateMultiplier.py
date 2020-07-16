@@ -18,6 +18,7 @@ class LearningRateMultiplier(optimizers.Optimizer):
         **kwargs: The arguments for instantiating the wrapped optimizer
             class.
     """
+
     def __init__(self, optimizer, lr_multipliers=None):
         self._optimizer = optimizer
         self._lr_multipliers = lr_multipliers or {}
@@ -28,8 +29,13 @@ class LearningRateMultiplier(optimizers.Optimizer):
                 return self._lr_multipliers[k]
 
     def get_updates(self, loss, params):
+
+        print("Multipliers: %s" % str(self._lr_multipliers))
+
         mult_lr_params = {p: self._get_multiplier(p) for p in params
                           if self._get_multiplier(p)}
+        print("Params: %s" % str(params))
+        print("Mult pr params: %s" % str(mult_lr_params))
         base_lr_params = [p for p in params if self._get_multiplier(p) is None]
 
         updates = []
@@ -64,5 +70,6 @@ class LearningRateMultiplier(optimizers.Optimizer):
     def from_config(cls, config):
         optimizer = optimizers.deserialize(config.pop('optimizer'))
         return cls(optimizer, **config)
+
 
 get_custom_objects().update({'LearningRateMultiplier': LearningRateMultiplier})

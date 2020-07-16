@@ -20,20 +20,19 @@ class GenerateDataset:
         self.metadata = metadata
 
     def load_dataset(self, existing_dataset, val_split=0.2, test_split=0.2):
-        for class_name in os.listdir(self.path):
-            if class_name in self.IGNORED:
-                continue
-            self.classes.append(class_name)
 
         if existing_dataset != 'None':
-            dataset_file = os.path.join(existing_dataset)
-            dataset_file = open(dataset_file)
-            loaded_dataset = json.load(dataset_file)
-            dataset_file.close()
-            self.train = loaded_dataset['train']
-            self.test = loaded_dataset['test']
-            self.val = loaded_dataset['val']
+            with open(existing_dataset, 'r') as dataset_file:
+                loaded_dataset = json.load(dataset_file)
+                self.train = loaded_dataset['train']
+                self.test = loaded_dataset['test']
+                self.val = loaded_dataset['val']
+                self.classes = loaded_dataset['classes']
         else:
+            for class_name in os.listdir(self.path):
+                if class_name in self.IGNORED:
+                    continue
+                self.classes.append(class_name)
             self.load_new_dataset(val_split, test_split)
 
     def num_classes(self):

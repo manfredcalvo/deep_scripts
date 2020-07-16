@@ -6,7 +6,8 @@ import numpy as np
 
 
 class ImageDatasetGenerator(keras.utils.Sequence):
-    def __init__(self, files, labels, batch_size, output_dim, metadata, random_crop=False, rotation = False, train_mode=True, **kwargs):
+    def __init__(self, files, labels, batch_size, output_dim, metadata, random_crop=False, rotation=False,
+                 train_mode=True, preprocess_function=False, **kwargs):
         self.dataset = files
         self.labels = labels
         self.batch_size = batch_size
@@ -19,6 +20,7 @@ class ImageDatasetGenerator(keras.utils.Sequence):
         self.possible_rotations = {1: cv2.ROTATE_90_CLOCKWISE, 2: cv2.ROTATE_90_COUNTERCLOCKWISE, 3: cv2.ROTATE_180}
         self.random_crop = random_crop
         self.rotation = rotation
+        self.preprocess_function = preprocess_function
         self.transformations = None
         self.create_transformations()
 
@@ -42,6 +44,8 @@ class ImageDatasetGenerator(keras.utils.Sequence):
 
         self.transformations.append(self.image_generator.random_transform)
 
+        if self.preprocess_function:
+            self.transformations.append(self.preprocess_function)
 
     def load_specimens(self, files):
 
@@ -114,7 +118,8 @@ class ImageDatasetGenerator(keras.utils.Sequence):
 
                 ##Just executing first transformation.
                 img = self.transformations[0](img)
-
+                if self.preprocess_function:
+                    img = self.transformations[-1](img)
                 X[j] = img
                 y[j] = label
 

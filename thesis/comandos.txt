@@ -1,6 +1,6 @@
 
 
-nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> trainModelBarkNetGrid2.txt &
+nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> logGridBarkNetTransfer.txt &
 
 
 nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid9.txt &
@@ -134,3 +134,106 @@ nohup python3 -u trainModel.py -d /notebooks/downloaded_data/full_data_top_23 -m
 
 
 nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid18.txt &
+
+
+
+nohup python3 -u trainModel.py -d /notebooks/dataset_hojas.json -m /notebooks/hojas.metadata -o /notebooks/experiments_hojas/ -s settings_maderas_unsharp.json -l True > trainModelHojasGrid1.txt &
+
+
+nohup python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json > trainModelMaderasGrid24.txt &
+
+
+
+
+
+
+nohup python3 -u trainModel.py -d /notebooks/downloaded_data/full_data_top_23 -m /notebooks/bdfr.metadata -o /notebooks/experiments_bdfr -s settings_bdfr.json > trainModelBDFRGrid2.txt &
+
+
+nohup python3 -u trainModel.py -d /notebooks/dataset_hojas.json -m /notebooks/hojas.metadata -o /notebooks/experiments_hojas/ -s settings_maderas_unsharp.json -l True > trainModelHojasGrid2.txt &
+
+
+
+python3 -u trainModel.py -d /notebooks/Madera_76_Especies/allDataRenamed/ -m /notebooks/maderasRenamed.metadata -o /notebooks/experiments_maderas/ -s settings_maderas_unsharp.json
+
+python3 -u trainModel.py -d /notebooks/downloaded_data/full_data_top_23 -m /notebooks/bdfr.metadata -o /notebooks/experiments_bdfr -s settings_bdfr.json
+
+python3 -u trainModel.py -d /notebooks/dataset_hojas.json -m /notebooks/hojas.metadata -o /notebooks/experiments_hojas/ -s settings_maderas_unsharp.json -l True
+
+
+nohup python3 -u trainModel.py -d /notebooks/dataset_food.json -m  /notebooks/food.metadata -o /notebooks/experiments_food/ -s settings_maderas_unsharp.json -l True > trainModelFood.txt &
+
+
+
+
+logGridTransfer.txt
+
+nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> logGridBarkNetTransfer.txt &
+
+
+No dropout
+
+nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> logGridBarkNetTransfer2.txt &
+
+Dense Layer
+
+nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> logGridBarkNetTransfer3.txt &
+
+
+Dense Layer + Multiplier
+
+nohup python3 -u trainModel.py -d "/notebooks/BarkNet 1.0/" -m /notebooks/barknet.metadata -o /notebooks/experiments_barknet/ -s settings_barknet.json >> logGridBarkNetTransfer4.txt &
+
+logGridBark
+
+Resnet50
+
+nohup python3 -u trainModel.py -d /notebooks/downloaded_data/full_data_top_23_cut_2 -m /notebooks/bdfr.metadata -o /notebooks/experiments_bdfr -s settings_bdfr.json > logGridGuyanaTransfer.txt &
+
+
+Resnet34
+nohup python3 -u trainModel.py -d /notebooks/downloaded_data/full_data_top_23_cut_2 -m /notebooks/bdfr.metadata -o /notebooks/experiments_bdfr -s settings_bdfr.json > logGridGuyanaTransfer2.txt &
+
+
+Last experiment running with the same configs as resnet_50 but using resnet_34 y vgg_16.
+
+nohup bash runExperiments.sh > logGridMultipleModels.txt &
+
+
+
+
+Last experiment running with the same configs as before but training all the layers in each architecture: resnet_50, resnet_34, mobilenet.
+
+nohup bash runExperiments.sh > logGridMultipleModels2.txt &
+
+Last experiment running with the same configs as before but training 0 layers in each architecture: resnet_50, resnet_34, mobilenet.
+
+nohup bash runExperiments.sh > logGridMultipleModels3.txt &
+
+Experiment running with the same configs as before but training all the layers in each architecture: resnet_50, resnet_34, mobilenet and no random_crop
+
+nohup bash runExperiments.sh > logGridMultipleModels4.txt &
+
+
+Test change to save model correctly when training all layers using multi gpu model. Running just two epochs.
+
+nohup bash runExperiments.sh > logGridMultipleModelsTest.txt &
+
+
+Experiment running with the same configs as before but training all the layers in each architecture: resnet_50, resnet_34, mobilenet and no random_crop
+Saving models correctly when training all layers.
+
+nohup bash runExperiments.sh > logGridMultipleModels5.txt &
+
+This previous experiment failed because of AdaptiveLog
+
+
+Experiment running with the same configs as before but training all the layers in each architecture: resnet_50, resnet_34, mobilenet and no random_crop
+Saving models correctly when training all layers. Running with Adaptive, AdaptiveLog and AdaptiveLambda
+
+nohup bash runExperiments.sh > logGridMultipleModels6.txt &
+
+Experiment running with the same configs as before but training any layer in each architecture: resnet_50, resnet_34, mobilenet and no random_crop
+Saving models correctly when training all layers. Running with Adaptive, AdaptiveLog and AdaptiveLambda
+
+nohup bash runExperiments.sh >> logGridMultipleModels7.txt &
