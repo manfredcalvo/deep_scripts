@@ -238,13 +238,8 @@ if __name__ == '__main__':
 
     output_path = args['output_path']
 
-    print("Processing experiments inside folder: {}".format(base_experiments_path))
-    print("Processing grids: {}".format(str(grids_list)))
-
     experiments_paths = get_experiments_path(base_experiments_path, grids_list)
 
     df_results = process_experiments(experiments_paths)
-
-    print("Writing out to file: {}".format(output_path))
 
     df_results.to_csv(output_path)
