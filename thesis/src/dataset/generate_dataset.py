@@ -4,7 +4,7 @@ from PIL import Image
 import random
 import numpy as np
 from sklearn.model_selection import train_test_split
-
+from pathlib import Path
 
 class GenerateDataset:
     IGNORED = ['ERB', 'PEG', 'PID']
@@ -69,21 +69,18 @@ class GenerateDataset:
                 continue
             self.dataset[class_name] = []
             for file in os.listdir(os.path.join(self.path, class_name)):
-                file_path = os.path.join(self.path, class_name, file)
+                file_path = Path(self.path, class_name, file)
                 # Metadata is a dict with the metadata of each file.
-                specimen_number = self.metadata[file.split('/')[-1]]['specimen_number']
-
+                specimen_number = self.metadata[file_path.name]['specimen_number']
                 if specimen_number not in self.specimens.keys():
                     self.specimens[specimen_number] = []
-
                 if specimen_number not in self.dataset[class_name]:
                     self.dataset[class_name].append(specimen_number)
-
                 if not file.endswith('NAME.jpg'):
-                    img = Image.open(file_path)
+                    img = Image.open(str(file_path))
                     width, height = img.size
                     if width >= 224 and height >= 224:
-                        self.specimens[specimen_number].append(file_path)
+                        self.specimens[specimen_number].append(str(file_path))
 
         self.classes.sort()
         dataset = self.get_dataset(val_split, test_split)
@@ -119,7 +116,8 @@ class GenerateDataset:
 
             j = 0
             for file in train_data['files']:
-                specimen_number = self.metadata[file.split('/')[-1]]['specimen_number']
+                file_path = Path(file)
+                specimen_number = self.metadata[file_path.name]['specimen_number']
                 if specimen_number in specimens:
                     train.append(train_data['files'][j])
                     labels.append(train_data['labels'][j])
@@ -156,7 +154,8 @@ class GenerateDataset:
     def get_trees_in_train(self):
         specimens = []
         for file in self.train['files']:
-            specimen_number = self.metadata[file.split('/')[-1]]['specimen_number']
+            file_path = Path(file)
+            specimen_number = self.metadata[file_path.name]['specimen_number']
             if specimen_number not in specimens:
                 specimens.append(specimen_number)
 
@@ -166,7 +165,8 @@ class GenerateDataset:
         images_by_class = {x: [] for x in self.classes}
         i = 0
         for file in self.train['files']:
-            class_name = self.metadata[file.split('/')[-1]]['label']
+            file_path = Path(file)
+            class_name = self.metadata[file_path.name]['label']
             images_by_class[class_name].append(i)
             i += 1
 
@@ -175,7 +175,7 @@ class GenerateDataset:
     def get_specimens_in_train_by_class(self):
         specimens_by_class = {x: [] for x in self.classes}
         for file in self.train['files']:
-            file_name = file.split('/')[-1]
+            file_name = Path(file).name
             specimen_number = self.metadata[file_name]['specimen_number']
             class_name = self.metadata[file_name]['label']
             if specimen_number not in specimens_by_class[class_name]:
@@ -237,7 +237,8 @@ class GenerateDataset:
     def get_labels(self, files):
         labels = []
         for file in files:
-            label = self.metadata[file.split('/')[-1]]['label']
+            file_path = Path(file)
+            label = self.metadata[file_path.name]['label']
             if label not in self.classes:
                 print("Label not found")
                 print("File " + file)

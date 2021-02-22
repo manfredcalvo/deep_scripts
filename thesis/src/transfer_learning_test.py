@@ -83,15 +83,17 @@ n_classes = generate_dataset_guyana.num_classes()
 # In[3]:
 
 
-np.bincount(train_flow.classes)
+#np.bincount(train_flow.classes)
 
 
 # In[4]:
 
 
+'''
 class_weights = {i: weight for i, weight in enumerate(compute_class_weight('balanced', np.unique(train_flow.classes), train_flow.classes))}
 n_classes = len(class_weights)
 class_weights, n_classes
+'''
 
 
 # In[9]:
@@ -114,17 +116,12 @@ x = preprocess_input(input_img)
 
 encoded_features = base_model(x)
 
-x = GlobalAveragePooling2D()(encoded_features)
-# let's add a fully-connected layer
-x = Dense(2048)(x)
-x = BatchNormalization()(x)
-x = Activation('relu')(x)
-x = Dropout(0.5)(x)
-x = Dense(1024)(x)
-x = BatchNormalization()(x)
-x = Activation('relu')(x)
-x = Dropout(0.5)(x)
-predictions = Dense(n_classes, activation='softmax')(x)
+x3 = GlobalAveragePooling2D()(encoded_features)
+x4 = Dense(1024, activation='relu')(x3)
+x5 = Dropout(dropout)(x4)
+
+predictions = Dense(num_classes, activation='softmax', name='softmax', kernel_regularizer=l2(0.01),
+                         bias_regularizer=l2(0.01), kernel_initializer=tf.keras.initializers.glorot_normal())(x5)
 
 # this is the model we will train
 model = Model(inputs=input_img, outputs=predictions)
@@ -143,11 +140,12 @@ model.summary()
 
 model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
 
+
 model.fit_generator(train_image_generator, 
                     steps_per_epoch=calculate_steps(len(train_image_generator), batch_size),
                     epochs=20,
                     validation_steps=calculate_steps(len(val_image_generator), batch_size),
-                    validation_data=val_image_generator)
+                    validation_data=val_image_generator, multiprocessing=True, workers=16)
 #model.fit(train_flow, epochs=10, class_weight=class_weights)
 model.save('/datadrive/bdfr_models/step_1_model')
 
@@ -155,7 +153,7 @@ model.save('/datadrive/bdfr_models/step_1_model')
 # In[11]:
 
 
-model = tf.keras.models.load_model('step_1_model')
+model = tf.keras.models.load_model('/datadrive/bdfr_models/step_1_model')
 
 
 # In[12]:
@@ -195,7 +193,7 @@ model.fit(train_image_generator,
                     steps_per_epoch=calculate_steps(len(train_image_generator), batch_size),
                     epochs=20,
                     validation_steps=calculate_steps(len(val_image_generator), batch_size),
-                    validation_data=val_image_generator)
+                    validation_data=val_image_generator, multiprocessing=True, workers=16)
 
 model.save('/datadrive/bdfr_models/step_2_model')
 
