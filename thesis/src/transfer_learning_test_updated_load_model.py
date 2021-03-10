@@ -39,14 +39,14 @@ tf.keras.layers.BatchNormalization = FrozenBatchNormalization
 # In[3]:
 
 
-guyana_dataset_path = '/datadrive/barknet_1.0'
+guyana_dataset_path = '/datadrive/notebooks/downloaded_data/full_data_top_23_0.1_resize_672_672'
 
-with open('/datadrive/barknet.metadata') as json_file:
+with open('/datadrive/bdfr.metadata') as json_file:
         guyana_dataset_metadata = json.load(json_file)
         
 generate_dataset_guyana = GenerateDataset(guyana_dataset_path, guyana_dataset_metadata)
 
-generate_dataset_guyana.load_dataset('None', val_split=0.1, test_split=0.0)
+generate_dataset_guyana.load_dataset('None', val_split=0.0, test_split=0.2)
 
 dataset_guyana = generate_dataset_guyana.all_dataset()
 
@@ -74,7 +74,7 @@ augmentation_params = {'vertical_flip': True, 'rotation': True, 'channel_shift_r
 
 train_image_generator = ImageDatasetGenerator(train_data_guyana['files'], train_data_guyana['labels'], batch_size, output_dim,
                                         guyana_dataset_metadata, train_mode=True, **augmentation_params)
-val_image_generator = ImageDatasetGenerator(val_data_guyana['files'], val_data_guyana['labels'], batch_size, output_dim,
+val_image_generator = ImageDatasetGenerator(test_data_guyana['files'], test_data_guyana['labels'], batch_size, output_dim,
                                         guyana_dataset_metadata, train_mode=False, random_crop=False)
 
 
@@ -118,15 +118,18 @@ img_generator = image_dataset_from_directory('C:\\Users\\calvom\\ThesisMaster\\n
                                              label_mode='categorical')
 '''
 
+loaded_model = tf.keras.models.load_model('/datadrive/barknet_models/step_1_model_from_scratch')
+#print(loaded_model.summary())
 #base_model = ResNet50(weights='imagenet', include_top=False)
-base_model = MobileNetV2(weights='imagenet', include_top=False)
+#base_model = MobileNetV2(weights='imagenet', include_top=False)
+base_model = loaded_model.layers[3]
 input_img = Input((224, 224,3))
 
-#x = preprocess_input(input_img)
+x = preprocess_input(input_img)
 
-x = tf.keras.applications.mobilenet_v2.preprocess_input(input_img)
+#x = tf.keras.applications.mobilenet_v2.preprocess_input(input_img)
 
-encoded_features = base_model(x)
+encoded_features = base_model(x, training=False)
 
 x3 = GlobalAveragePooling2D()(encoded_features)
 x4 = Dense(1024, activation='relu')(x3)
@@ -162,11 +165,11 @@ model.compile(loss='categorical_crossentropy', optimizer=op, metrics=['accuracy'
 
 model.fit(train_image_generator, 
                     steps_per_epoch=calculate_steps(len(train_image_generator), batch_size),
-                    epochs=50,
+                    epochs=100,
                     validation_steps=calculate_steps(len(val_image_generator), batch_size),
-                    validation_data=val_image_generator, use_multiprocessing=True, workers=32)
+                    validation_data=val_image_generator, use_multiprocessing=True, workers=32, callbacks=callbacks)
 #model.fit(train_flow, epochs=10, class_weight=class_weights)
-model.save('/datadrive/bdfr_models/step_1_model')
+model.save('/datadrive/bdfr_models/step_1_model_based_on_barknet_resnet_50_from_scratch')
 
 
 # In[13]:
@@ -180,7 +183,7 @@ for i, layer in enumerate(base_model.layers):
 
 
 
-base_model.trainable = False
+base_model.trainable = True
 for layer in base_model.layers[:100]:
     layer.trainable = False
 
@@ -204,5 +207,5 @@ model.fit(train_image_generator,
                     validation_steps=calculate_steps(len(val_image_generator), batch_size),
                     validation_data=val_image_generator, use_multiprocessing=True, workers=32)
 
-model.save('/datadrive/bdfr_models/step_2_model')
+model.save('/datadrive/bdfr_models/step_2_model_based_on_barknet_resnet_50_from_scratch')
 
