@@ -1,4 +1,4 @@
-from tensorflow.keras import optimizers
+from tensorflow.python.keras import optimizers
 from tensorflow.keras.utils import get_custom_objects
 
 
