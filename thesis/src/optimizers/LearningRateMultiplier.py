@@ -58,7 +58,7 @@ class LearningRateMultiplier(optimizers.Optimizer):
         return dict(list(base_config.items()) + list(config.items()))
 
     def __getattr__(self, name):
-        return getattr(self._optimizer, name)
+        return self._optimizer.name
 
     def __setattr__(self, name, value):
         if name.startswith('_'):

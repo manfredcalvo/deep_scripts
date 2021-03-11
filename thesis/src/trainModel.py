@@ -611,7 +611,7 @@ if __name__ == '__main__':
                            'horizontal_flip': True, 'random_crop': True}
 
     # models = ['mobile_net', 'resnet_34', 'resnet_50']
-    models = []
+    models = ['resnet_50']
 
     grid = {
         "batch_size": [64],
