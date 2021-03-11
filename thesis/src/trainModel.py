@@ -25,7 +25,6 @@ from tensorflow.keras.layers import Input, GaussianNoise, GaussianDropout
 from tensorflow.keras import Model
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, CSVLogger, \
     LambdaCallback
-from tensorflow.keras.utils import multi_gpu_model
 from tensorflow.keras.models import load_model
 from skimage.filters import unsharp_mask
 from tensorflow.keras import layers
@@ -132,30 +131,33 @@ def get_lambda_given_x(input_layer):
 
 
 def get_model(input_shape, input_layer, num_classes, model_name='resnet_50', trainable_layers_amount=0,
-              dropout=0.5):
-    if model_name == 'resnet_50':
-        base_model = ResNet50(include_top=False,
-                              weights='imagenet',
-                              input_tensor=None,
-                              input_shape=input_shape)
-    else:
-        if model_name == 'mobile_net':
-            base_model = MobileNet(include_top=False,
-                                   weights='imagenet',
-                                   input_tensor=None,
-                                   input_shape=input_shape)
-        elif model_name == 'resnet_34':
-            base_model = ResNet34(include_top=False,
+              dropout=0.5, path_model=None):
+    if not path_model:
+        if model_name == 'resnet_50':
+            base_model = ResNet50(include_top=False,
                                   weights='imagenet',
                                   input_tensor=None,
                                   input_shape=input_shape)
-
-    layers = base_model.layers
+        else:
+            if model_name == 'mobile_net':
+                base_model = MobileNet(include_top=False,
+                                       weights='imagenet',
+                                       input_tensor=None,
+                                       input_shape=input_shape)
+            elif model_name == 'resnet_34':
+                base_model = ResNet34(include_top=False,
+                                      weights='imagenet',
+                                      input_tensor=None,
+                                      input_shape=input_shape)
+    else:
+        print(f'Loading model in path {path_model}')
+        loaded_model = load_model(path_model)
+        base_model = loaded_model.layers[3]
 
     # Avoid training layers in resnet model.
-    for layer in layers:
-        layer.trainable = False
+    base_model.trainable = False
 
+    layers = base_model.layers
     # Training the last
     if trainable_layers_amount != 0:
         if trainable_layers_amount != -1:
@@ -169,9 +171,10 @@ def get_model(input_shape, input_layer, num_classes, model_name='resnet_50', tra
     for layer in trainable_layers:
         print("Making layer %s trainable " % layer.name)
         layer.trainable = True
+
     base_model.summary()
     x1 = PreprocessImage(model_name)(input_layer)
-    x2 = base_model(x1)
+    x2 = base_model(x1, training=False)
     x3 = GlobalAveragePooling2D()(x2)
     x4 = Dense(1024, activation='relu')(x3)
     x5 = Dropout(dropout)(x4)
@@ -214,6 +217,15 @@ def create_parse():
     parser.add_argument('--grid', '-g', required=True,
                         help='Name of the grid to run')
 
+    parser.add_argument('--path_model', '-p', required=False,
+                        help='Path to an existing model.')
+
+    parser.add_argument('--fine_tune', '-f',
+                        type=bool,
+                        default=False,
+                        required=False,
+                        help='Flag to fine tune the model.')
+
     return parser
 
 
@@ -249,7 +261,6 @@ def create_parse():
 # reduce_lr_patience = 5
 
 
-
 def save_predictions(dataset, dataset_generator, model, batch_size, classes_names, predictions_path):
     predictions_test = model.predict_generator(dataset_generator,
                                                steps=calculate_steps(len(dataset_generator), batch_size),
@@ -278,7 +289,6 @@ def _on_epoch_begin(epoch, history_weights_path, unsharp_mask_layer):
 
 def build_model(output_dim,
                 num_classes,
-                gpus,
                 dropout,
                 trainable_layers_amount,
                 unsharp_mask_filter,
@@ -286,7 +296,8 @@ def build_model(output_dim,
                 fixed_sigma,
                 model_name,
                 callbacks,
-                history_weights_path):
+                history_weights_path,
+                path_model=None):
     input_layer = Input((output_dim[0], output_dim[1], 3))
 
     if unsharp_mask_filter == 'adaptiveLog':
@@ -328,27 +339,19 @@ def build_model(output_dim,
                                              model_name=model_name,
                                              num_classes=num_classes,
                                              trainable_layers_amount=trainable_layers_amount,
-                                             dropout=dropout)
+                                             dropout=dropout,
+                                             path_model=path_model)
 
         base_model.summary()
     else:
         output_layer = build_lenet_network(initial_layer, num_classes=num_classes)
 
-    if gpus <= 1:
-        final_model = Model(inputs=input_layer, outputs=output_layer)
-    else:
-        with tf.device("/cpu:0"):
-            # initialize the model
-            cpu_model = Model(inputs=input_layer, outputs=output_layer)
-            cpu_model.summary()
-            # make the model parallel
-            final_model = multi_gpu_model(cpu_model, gpus=gpus)
+    final_model = Model(inputs=input_layer, outputs=output_layer)
 
-    return final_model
+    return final_model, base_model
 
 
 def run_experiment(args, params):
-    
     dataset_path = args['dataset_path']
 
     metadata_path = args['metadata_path']
@@ -357,6 +360,10 @@ def run_experiment(args, params):
 
     load_dataset = args['load_dataset']
 
+    path_model = args['path_model']
+
+    fine_tune = args['fine_tune']
+
     epochs = params['epochs']
 
     batch_size = params['batch_size']
@@ -364,8 +371,6 @@ def run_experiment(args, params):
     trainable_layers_amount = params['trainable_layers_amount']
 
     metric_stop = params['metric_stop']
-
-    gpus = params['gpus']
 
     dropout = params['dropout']
 
@@ -499,9 +504,9 @@ def run_experiment(args, params):
         CSVLogger(training_log_file),
         model_checkpoint]
 
-    final_model = build_model(output_dim, num_classes, gpus, dropout, trainable_layers_amount,
-                              unsharp_mask_filter, kernel_size,
-                              fixed_sigma, model_name, callbacks, history_weights_path)
+    final_model, base_model = build_model(output_dim, num_classes, dropout, trainable_layers_amount,
+                                          unsharp_mask_filter, kernel_size,
+                                          fixed_sigma, model_name, callbacks, history_weights_path, path_model)
 
     op = Adam(lr=initial_lr, decay=1e-4)
 
@@ -511,15 +516,32 @@ def run_experiment(args, params):
     final_model.compile(optimizer=optimizer,
                         loss='categorical_crossentropy', metrics=['accuracy', 'top_k_categorical_accuracy'])
 
-    final_model.fit_generator(image_generator,
-                              steps_per_epoch=calculate_steps(len(image_generator), batch_size),
-                              validation_data=val_image_generator,
-                              validation_steps=calculate_steps(len(val_image_generator), batch_size),
-                              epochs=epochs,
-                              verbose=1,
-                              workers=100,
-                              use_multiprocessing=True,
-                              callbacks=callbacks)
+    final_model.fit(image_generator,
+                    steps_per_epoch=calculate_steps(len(image_generator), batch_size),
+                    validation_data=val_image_generator,
+                    validation_steps=calculate_steps(len(val_image_generator), batch_size),
+                    epochs=epochs,
+                    verbose=1,
+                    workers=100,
+                    use_multiprocessing=True,
+                    callbacks=callbacks)
+
+    if fine_tune:
+        base_model.trainable = True
+        for layer in base_model.layers[:100]:
+            layer.trainable = False
+
+        final_model.compile(optimizer=tf.keras.optimizers.RMSprop(lr=initial_lr / 10),
+                            loss='categorical_crossentropy', metrics=['accuracy', 'top_k_categorical_accuracy'])
+        final_model.fit(image_generator,
+                        steps_per_epoch=calculate_steps(len(image_generator), batch_size),
+                        validation_data=val_image_generator,
+                        validation_steps=calculate_steps(len(val_image_generator), batch_size),
+                        epochs=20,
+                        verbose=1,
+                        workers=100,
+                        use_multiprocessing=True,
+                        callbacks=callbacks)
 
     metrics_name = final_model.metrics_names
 
@@ -588,7 +610,8 @@ if __name__ == '__main__':
     augmentation_params = {'vertical_flip': True, 'rotation': True, 'channel_shift_range': 10, 'shear_range': 0.2,
                            'horizontal_flip': True, 'random_crop': True}
 
-    models = ['mobile_net', 'resnet_34', 'resnet_50']
+    # models = ['mobile_net', 'resnet_34', 'resnet_50']
+    models = []
 
     grid = {
         "batch_size": [64],
@@ -607,12 +630,12 @@ if __name__ == '__main__':
         "test_split": [0.2],
         "trainable_layers_amount": [0],
         "augmentation_params": [augmentation_params],
-        "metric_stop": ['val_loss'],
-        "gpus": [2],
+        "metric_stop": ['val_accuracy'],
+        "gpus": [1],
         "dropout": [dropout]
     }
 
-    if grid_name == 'grid_no_filter':
+    if grid_name == 'grid_no_filter' or grid_name == 'grid_transfer_bark':
         grid['unsharp_mask_filter'] = ['noFilter']
         grid['unsharp_mask_multiplier'] = [-1]
         grid['amount'] = [-1]

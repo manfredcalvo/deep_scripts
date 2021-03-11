@@ -1,5 +1,5 @@
-from tensorflow.python.keras import optimizers
-from tensorflow.python.keras.utils import get_custom_objects
+from tensorflow.keras import optimizers
+from tensorflow.keras.utils import get_custom_objects
 
 
 class LearningRateMultiplier(optimizers.Optimizer):
