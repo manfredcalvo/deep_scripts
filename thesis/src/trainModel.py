@@ -352,6 +352,10 @@ def build_model(output_dim,
 
 
 def run_experiment(args, params):
+     
+    print(args)
+    print(params)
+    
     dataset_path = args['dataset_path']
 
     metadata_path = args['metadata_path']
@@ -492,7 +496,7 @@ def run_experiment(args, params):
     print("Validation data size: {}".format(len(val_image_generator)))
     print("Test data size: {}".format(len(test_image_generator)))
 
-    model_checkpoint = CustomModelCheckpoint(model_output_path, monitor='val_acc',
+    model_checkpoint = CustomModelCheckpoint(model_output_path, monitor='val_accuracy',
                                              save_best_only=True,
                                              save_weights_only=False)
 
@@ -541,7 +545,7 @@ def run_experiment(args, params):
                         verbose=1,
                         workers=100,
                         use_multiprocessing=True,
-                        callbacks=callbacks)
+                        callbacks=[model_checkpoint])
 
     metrics_name = final_model.metrics_names
 
@@ -628,7 +632,7 @@ if __name__ == '__main__':
         "kernel_size": [5],
         "val_split": [0.2],
         "test_split": [0.2],
-        "trainable_layers_amount": [0],
+        "trainable_layers_amount": [-1],
         "augmentation_params": [augmentation_params],
         "metric_stop": ['val_accuracy'],
         "gpus": [1],

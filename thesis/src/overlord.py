@@ -16,8 +16,8 @@ from tensorflow.keras.layers import Input, GlobalAveragePooling2D, Dense, Dropou
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras import layers
 from tensorflow.keras.applications.resnet50 import preprocess_input
-from tensorflow.python.keras import Sequential, Model
-from tensorflow.python.keras.optimizers import Adam
+from tensorflow.keras import Sequential, Model
+from tensorflow.keras.optimizers import Adam
 from skimage.filters import unsharp_mask
 from tensorflow.keras.preprocessing import image
 from dataset.generate_dataset import GenerateDataset
@@ -30,8 +30,8 @@ from optimizers.LearningRateMultiplier import LearningRateMultiplier
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import load_model
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+#os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 def get_experiments_path(experiments_folder, grids_list):
@@ -123,7 +123,7 @@ def load_dataset(experiment_path):
 def load_experiment_model(experiment_path):
     model_path = os.path.join(experiment_path, 'best-model.ckpt')
     model = load_model(model_path)
-    model = model.layers[-2]  ##Removing two last layers because they are for gpus usage.
+    #model = model.layers[-2]  ##Removing two last layers because they are for gpus usage.
     model.summary()
     return model
 
