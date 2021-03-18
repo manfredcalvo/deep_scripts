@@ -512,10 +512,10 @@ def run_experiment(args, params):
                                           unsharp_mask_filter, kernel_size,
                                           fixed_sigma, model_name, callbacks, history_weights_path, path_model)
 
-    optimizer = Adam(lr=initial_lr, decay=1e-4)
+    op = Adam(lr=initial_lr, decay=1e-4)
 
-    # optimizer = LearningRateMultiplier(op,
-    #                                   lr_multipliers={'unsharp_mask': unsharp_mask_multiplier})
+    optimizer = LearningRateMultiplier(op,
+                                       lr_multipliers={'unsharp_mask': unsharp_mask_multiplier})
 
     final_model.compile(optimizer=optimizer,
                         loss='categorical_crossentropy', metrics=['accuracy', 'top_k_categorical_accuracy'])
@@ -634,7 +634,7 @@ if __name__ == '__main__':
         "test_split": [0.2],
         "trainable_layers_amount": [-1],
         "augmentation_params": [augmentation_params],
-        "metric_stop": ['val_accuracy'],
+        "metric_stop": ['val_loss'],
         "gpus": [1],
         "dropout": [dropout]
     }
