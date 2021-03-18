@@ -1,4 +1,4 @@
-from tensorflow.keras import optimizers
+from tensorflow.python.keras import optimizers
 from tensorflow.keras.utils import get_custom_objects
 
 
@@ -56,7 +56,7 @@ class LearningRateMultiplier(optimizers.Optimizer):
         }
         base_config = super(LearningRateMultiplier, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
+    '''
     def __getattr__(self, name):
         return self._optimizer.__getattr__(name)
 
@@ -65,7 +65,7 @@ class LearningRateMultiplier(optimizers.Optimizer):
             super(LearningRateMultiplier, self).__setattr__(name, value)
         else:
             self._optimizer.__setattr__(name, value)
- 
+    '''
     @classmethod
     def from_config(cls, config):
         optimizer = optimizers.deserialize(config.pop('optimizer'))
