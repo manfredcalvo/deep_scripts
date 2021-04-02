@@ -3,6 +3,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import cv2
 from random import choice
 import numpy as np
+from pathlib import Path
 
 
 class ImageDatasetGenerator(keras.utils.Sequence):
@@ -50,8 +51,9 @@ class ImageDatasetGenerator(keras.utils.Sequence):
     def load_specimens(self, files):
 
         for i, file in enumerate(files):
-            specimen_number = self.metadata[file.split('/')[-1]]['specimen_number']
-            class_name = self.metadata[file.split('/')[-1]]['label']
+            file_path = Path(file)
+            specimen_number = self.metadata[file_path.name]['specimen_number']
+            class_name = self.metadata[file_path.name]['label']
             if class_name not in self.classes.keys():
                 self.classes[class_name] = {}
 
