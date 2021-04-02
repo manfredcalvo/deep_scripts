@@ -234,10 +234,10 @@ sample_weights_adversarial = np.ones((batch_size,))
 weights = [sample_weights_class, sample_weights_adversarial]
 
 domain_binary_metric = BinaryAccuracy()
-source_classifier_metric = SparseCategoricalAccuracy()
-source_classifier_cum_loss = tf.keras.metrics.SparseCategoricalCrossentropy()
-target_classifier_cum_loss = tf.keras.metrics.SparseCategoricalCrossentropy()
-target_classifier_metric = SparseCategoricalAccuracy()
+source_classifier_metric = tf.keras.metrics.CategoricalAccuracy()
+source_classifier_cum_loss = tf.keras.metrics.CategoricalCrossentropy()
+target_classifier_cum_loss = tf.keras.metrics.CategoricalCrossentropy()
+target_classifier_metric = tf.keras.metrics.CategoricalAccuracy()
 
 
 def custom_loss_function(y_true, y_pred):
