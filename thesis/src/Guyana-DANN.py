@@ -319,9 +319,9 @@ for i in range(num_steps):
         domain_loss = domain_classifier_stats['loss']
         domain_accuracy = domain_classifier_stats['binary_accuracy']
         combined_model_loss = combined_model_stats['loss']
-        source_accuracy = combined_model_stats['source_sparse_categorical_accuracy']
+        source_accuracy = combined_model_stats['source_categorical_accuracy']
         # target_accuracy = combined_model_stats['target_sparse_categorical_accuracy']
-        source_cum_loss = combined_model_stats['source_sparse_categorical_crossentropy']
+        source_cum_loss = combined_model_stats['source_categorical_crossentropy']
         # target_cum_loss = combined_model_stats['target_sparse_categorical_crossentropy']
         print('---------------------------------------------------')
         print(f'Iteration: {i}')
