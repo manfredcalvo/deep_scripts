@@ -32,7 +32,9 @@ from tensorflow.keras.regularizers import l2
 import csv
 import tensorflow as tf
 from tensorflow.keras import backend as K
-#tf.compat.v1.disable_eager_execution()
+
+
+# tf.compat.v1.disable_eager_execution()
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
 # The GPU id to use, usually either "0" or "1"
@@ -42,6 +44,8 @@ from tensorflow.keras import backend as K
 class FrozenBatchNormalization(tf.keras.layers.BatchNormalization):
     def call(self, inputs, training=None):
         return super().call(inputs=inputs, training=False)
+
+
 tf.keras.layers.BatchNormalization = FrozenBatchNormalization
 
 FILTERS_TO_PRINT_SET = set(['adaptiveLog', 'adaptive'])
@@ -159,7 +163,8 @@ def get_model(input_shape, input_layer, num_classes, model_name='resnet_50', tra
         base_model = loaded_model.layers[3]
 
     # Avoid training layers in resnet model.
-    base_model.trainable = False
+    for layer in base_model.layers:
+        layer.trainable = False
 
     layers = base_model.layers
     # Training the last
@@ -356,10 +361,9 @@ def build_model(output_dim,
 
 
 def run_experiment(args, params):
-     
     print(args)
     print(params)
-    
+
     dataset_path = args['dataset_path']
 
     metadata_path = args['metadata_path']
@@ -518,7 +522,7 @@ def run_experiment(args, params):
 
     optimizer = Adam(lr=initial_lr, decay=1e-4)
 
-    #optimizer = LearningRateMultiplier(op,
+    # optimizer = LearningRateMultiplier(op,
     #                                   lr_multipliers={'unsharp_mask': unsharp_mask_multiplier})
 
     final_model.compile(optimizer=optimizer,
@@ -536,13 +540,12 @@ def run_experiment(args, params):
 
     if fine_tune:
         base_model.trainable = True
-       #base_model.trainable = True
         for layer in base_model.layers:
-          if 'conv5_block3' not in layer.name:
-            layer.trainable = False
-          else:
-            print(f'Layer trainable {layer.name}')
-
+            if 'conv5_block3' not in layer.name:
+                layer.trainable = False
+            else:
+                print(f'Layer trainable {layer.name}')
+        print(base_model.summary())
         final_model.compile(optimizer=tf.keras.optimizers.RMSprop(lr=initial_lr / 10),
                             loss='categorical_crossentropy', metrics=['accuracy', 'top_k_categorical_accuracy'])
         final_model.fit(image_generator,
