@@ -39,6 +39,10 @@ from tensorflow.keras import backend as K
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+class FrozenBatchNormalization(tf.keras.layers.BatchNormalization):
+    def call(self, inputs, training=None):
+        return super().call(inputs=inputs, training=False)
+tf.keras.layers.BatchNormalization = FrozenBatchNormalization
 
 FILTERS_TO_PRINT_SET = set(['adaptiveLog', 'adaptive'])
 
@@ -532,8 +536,12 @@ def run_experiment(args, params):
 
     if fine_tune:
         base_model.trainable = True
-        for layer in base_model.layers[:100]:
+       #base_model.trainable = True
+        for layer in base_model.layers:
+          if 'conv5_block3' not in layer.name:
             layer.trainable = False
+          else:
+            print(f'Layer trainable {layer.name}')
 
         final_model.compile(optimizer=tf.keras.optimizers.RMSprop(lr=initial_lr / 10),
                             loss='categorical_crossentropy', metrics=['accuracy', 'top_k_categorical_accuracy'])
