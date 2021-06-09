@@ -1,15 +1,18 @@
 import os
-
 import cv2
 import pandas as pd
 import numpy as np
 import json
+import distutils
 import argparse
 from collections import OrderedDict
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import log_loss
 from sklearn.metrics import precision_recall_fscore_support
+import torch
+from PIL import Image
+from torchvision import datasets, models, transforms
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import Input, GlobalAveragePooling2D, Dense, Dropout
@@ -30,8 +33,9 @@ from optimizers.LearningRateMultiplier import LearningRateMultiplier
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import load_model
 
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-#os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
 def get_experiments_path(experiments_folder, grids_list):
@@ -52,7 +56,7 @@ def get_probs_no_crops(n_images, probs_crops, idx_rows):
     return probs_no_crops
 
 
-def get_crops_and_labels(dataset, target_size=(224, 224), resize_dim=None):
+def get_crops_and_labels(dataset, target_size=(224, 224), resize_dim=None, pytorch=False):
     out_height, out_width = target_size
     crops = []
     files = dataset['files']
@@ -63,6 +67,8 @@ def get_crops_and_labels(dataset, target_size=(224, 224), resize_dim=None):
         img = cv2.imread(path)
         if resize_dim:
             img = cv2.resize(img, resize_dim)
+        if pytorch:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         (height, width) = img.shape[0], img.shape[1]
         crops_height = height // out_height
         crops_width = width // out_width
@@ -75,10 +81,33 @@ def get_crops_and_labels(dataset, target_size=(224, 224), resize_dim=None):
     return np.array(crops), np.array(crops_labels), np.array(idx_rows)
 
 
-def get_accuracy_crops(model, dataset, split='val', resize_dim=None):
+def predict_crops(crops, model, pytorch=False):
+    if pytorch:
+        with torch.no_grad():
+            data_transforms = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+            images_transformed = torch.stack([data_transforms(Image.fromarray(crop)) for crop in crops])
+            predictions_test = []
+            batch_size = 64
+            index = 0
+            for images in images_transformed[index:index + batch_size]:
+                inputs = inputs.to(images)
+                logits = model(inputs)
+                probs = torch.nn.functional.softmax(logits, dim=1)
+                batch_preds = probs.detach().cpu().numpy()
+                predictions_test.append(batch_preds)
+                index = index + batch_size
+            return np.concatenate(predictions_test)
+    else:
+        return model.predict(crops)
+
+
+def get_accuracy_crops(model, dataset, split='val', resize_dim=None, pytorch=False):
     val_dataset = dataset[split]
-    crops, crops_labels, idx_rows = get_crops_and_labels(val_dataset, resize_dim=resize_dim)
-    probs_crops = model.predict(crops)
+    crops, crops_labels, idx_rows = get_crops_and_labels(val_dataset, resize_dim=resize_dim, pytorch=pytorch)
+    probs_crops = predict_crops(crops, model, pytorch)
     probs_no_crops = get_probs_no_crops(len(val_dataset['labels']), probs_crops, idx_rows)
     preds_no_crops = probs_no_crops.argmax(axis=1)
     preds_crops = probs_crops.argmax(axis=1)
@@ -120,11 +149,16 @@ def load_dataset(experiment_path):
     return dataset
 
 
-def load_experiment_model(experiment_path):
+def load_experiment_model(experiment_path, pytorch=False):
     model_path = os.path.join(experiment_path, 'best-model.ckpt')
-    model = load_model(model_path)
-    #model = model.layers[-2]  ##Removing two last layers because they are for gpus usage.
-    model.summary()
+    if pytorch:
+        # Loading pytorch model.
+        model = torch.load(model_path)
+        model.eval()
+    else:
+        # Loading keras model.
+        model = load_model(model_path)
+        model.summary()
     return model
 
 
@@ -136,7 +170,7 @@ def get_metrics(y_true, y_pred, species_name):
     return df_metrics
 
 
-def process_experiment(experiment_path, resize_dim=None):
+def process_experiment(experiment_path, resize_dim=None, pytorch=False):
     evaluation = OrderedDict()
     predictions_path = os.path.join(experiment_path, 'val_predictions.tsv')
     test_predictions_path = os.path.join(experiment_path, 'test_predictions.tsv')
@@ -159,10 +193,12 @@ def process_experiment(experiment_path, resize_dim=None):
     model = load_experiment_model(experiment_path)
     dataset = load_dataset(experiment_path)
     acc_crops, top_k_crops, acc_multi_crops, top_k_multi_crops = get_accuracy_crops(model, dataset, split='val',
-                                                                                    resize_dim=resize_dim)
+                                                                                    resize_dim=resize_dim,
+                                                                                    pytorch=pytorch)
     acc_crops_test, top_k_crops_test, acc_multi_crops_test, top_k_multi_crops_test = get_accuracy_crops(model, dataset,
                                                                                                         split='test',
-                                                                                                        resize_dim=resize_dim)
+                                                                                                        resize_dim=resize_dim,
+                                                                                                        pytorch=pytorch)
     evaluation['accuracy_crops_test'] = acc_crops_test
     evaluation['top_k_categorical_crops_test'] = top_k_crops_test
     evaluation['accuracy_multi_crops_test'] = acc_multi_crops_test
@@ -188,13 +224,13 @@ def process_experiment(experiment_path, resize_dim=None):
     return evaluation
 
 
-def process_experiments(experiments_paths, resize_dim=None):
+def process_experiments(experiments_paths, resize_dim=None, pytorch=False):
     evaluations = []
     total_exps = len(experiments_paths)
     print("Total experiments to process: {}".format(total_exps))
     for n_experiment, experiment_path in enumerate(experiments_paths):
         print("Processing experiment: {} path: {}".format(n_experiment, experiment_path))
-        evaluation = process_experiment(experiment_path, resize_dim)
+        evaluation = process_experiment(experiment_path, resize_dim, pytorch)
         if evaluation:
             evaluations.append(evaluation)
     return pd.DataFrame(evaluations)
@@ -224,6 +260,11 @@ def create_parse():
                         required=True,
                         help='Path of the output csv')
 
+    parser.add_argument('--pytorch_experiments',
+                        default=False,
+                        type=distutils.util.strtobool,
+                        help='Whether the experiments were run on pytorch.')
+
     return parser
 
 
@@ -238,8 +279,12 @@ if __name__ == '__main__':
 
     output_path = args['output_path']
 
+    pytorch_experiments = args['pytorch_experiments']
+
+    print(args)
+
     experiments_paths = get_experiments_path(base_experiments_path, grids_list)
 
-    df_results = process_experiments(experiments_paths)
+    df_results = process_experiments(experiments_paths, pytorch=pytorch_experiments)
 
     df_results.to_csv(output_path)
