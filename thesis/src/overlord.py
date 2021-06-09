@@ -83,17 +83,24 @@ def get_crops_and_labels(dataset, target_size=(224, 224), resize_dim=None, pytor
 
 def predict_crops(crops, model, pytorch=False):
     if pytorch:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         with torch.no_grad():
+            print("Predicting using pytorch model")
+
             data_transforms = transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
+            print("Normalizing images before prediction")
+
             images_transformed = torch.stack([data_transforms(Image.fromarray(crop)) for crop in crops])
             predictions_test = []
             batch_size = 64
             index = 0
-            for images in images_transformed[index:index + batch_size]:
-                inputs = inputs.to(images)
+            print('Predicting images')
+
+            for inputs in images_transformed[index:index + batch_size]:
+                inputs = inputs.to(device)
                 logits = model(inputs)
                 probs = torch.nn.functional.softmax(logits, dim=1)
                 batch_preds = probs.detach().cpu().numpy()
