@@ -3,7 +3,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import json
-import distutils
+from distutils import util
 import argparse
 from collections import OrderedDict
 from sklearn.metrics import accuracy_score
@@ -190,7 +190,7 @@ def process_experiment(experiment_path, resize_dim=None, pytorch=False):
     df_metrics = get_metrics(y_true, y_pred, species_name)
     metrics_path = os.path.join(experiment_path, 'val_metrics.csv')
     df_metrics.to_csv(metrics_path, sep='\t', index=False)
-    model = load_experiment_model(experiment_path)
+    model = load_experiment_model(experiment_path, pytorch)
     dataset = load_dataset(experiment_path)
     acc_crops, top_k_crops, acc_multi_crops, top_k_multi_crops = get_accuracy_crops(model, dataset, split='val',
                                                                                     resize_dim=resize_dim,
@@ -262,7 +262,7 @@ def create_parse():
 
     parser.add_argument('--pytorch_experiments',
                         default=False,
-                        type=distutils.util.strtobool,
+                        type=lambda x: bool(util.strtobool(x)),
                         help='Whether the experiments were run on pytorch.')
 
     return parser
